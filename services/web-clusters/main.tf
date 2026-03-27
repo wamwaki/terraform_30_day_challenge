@@ -6,7 +6,6 @@ resource "aws_vpc" "terra_vpc" {
 
   tags = { Name = "${var.cluster_name}-vpc" }
 }
-
 # Public subnet 1 — in first AZ
 resource "aws_subnet" "terra_oo1" {
   vpc_id                  = aws_vpc.terra_vpc.id
@@ -230,4 +229,71 @@ data "terraform_remote_state" "db" {
     key = var.db_remote_state_key
     region = "us-east-1"
   }
+}
+resource "aws_autoscaling_schedule" "scale_out_during_business" {
+  count = var.enable_autoscaling ? 1 : 0
+
+  scheduled_action_name = "${var.cluster_name}-scale_out_during_business"
+  min_size = 2
+  max_size = 10
+  desired_capacity = 10
+  recurrence = "0 9 * * *"
+  autoscaling_group_name = aws_autoscaling_group.terra_asg.name
+}
+resource "aws_autoscaling_schedule" "scale_in_at_night" {
+  count = var.enable_autoscaling ? 1 : 0
+
+  scheduled_action_name = "${var.cluster_name}-scale_in_at_night"
+  min_size = 2
+  max_size = 10
+  desired_capacity = 2
+  recurrence = "0 17 * * *"
+  autoscaling_group_name = aws_autoscaling_group.terra_asg.name
+}
+variable "enable_detailed_monitoring" {
+  description = "Enable CloudWatch detailed monitoring (incurs additional cost)"
+  type        = bool
+  default     = false
+}
+
+variable "create_dns_record" {
+  description = "Whether to create a Route53 DNS record for the ALB"
+  type        = bool
+  default     = false
+}
+
+resource "aws_cloudwatch_metric_alarm" "high_cpu" {
+  count = var.enable_detailed_monitoring ? 1 : 0
+
+  alarm_name          = "${var.cluster_name}-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 80
+  alarm_description   = "CPU utilization exceeded 80%"
+}
+
+resource "aws_route53_record" "alb" {
+  count = var.create_dns_record ? 1 : 0
+
+  zone_id = data.aws_route53_zone.primary.zone_id
+  name = "${var.cluster_name}-r53"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.terra_alb.dns_name
+    zone_id                = aws_lb.terra_alb.zone_id
+    evaluate_target_health = true
+  }
+}
+data "aws_route53_zone" "primary" {
+  name = var.domain_name  # ← add this variable too
+}
+variable "domain_name" {
+  description = "Route53 hosted zone domain name"
+  type        = string
+  default     = ""
 }

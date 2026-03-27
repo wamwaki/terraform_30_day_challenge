@@ -83,3 +83,8 @@ variable "max_size" {
   description = "max number to run"
   type = number
 }
+variable "custom_tags" {
+  description = "custom tags"
+  type = map(string)
+  default = {}
+}
