@@ -88,3 +88,23 @@ variable "custom_tags" {
   type = map(string)
   default = {}
 }
+variable "enable_autoscaling" {
+  description = "If set to try, allow autoscaling"
+  type = bool
+}
+variable "domain_name" {
+  description = "Route53 hosted zone domain name"
+  type        = string
+  default     = ""
+}
+variable "enable_detailed_monitoring" {
+  description = "Enable CloudWatch detailed monitoring (incurs additional cost)"
+  type        = bool
+  default     = false
+}
+
+variable "create_dns_record" {
+  description = "Whether to create a Route53 DNS record for the ALB"
+  type        = bool
+  default     = false
+}

@@ -250,17 +250,6 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
   recurrence = "0 17 * * *"
   autoscaling_group_name = aws_autoscaling_group.terra_asg.name
 }
-variable "enable_detailed_monitoring" {
-  description = "Enable CloudWatch detailed monitoring (incurs additional cost)"
-  type        = bool
-  default     = false
-}
-
-variable "create_dns_record" {
-  description = "Whether to create a Route53 DNS record for the ALB"
-  type        = bool
-  default     = false
-}
 
 resource "aws_cloudwatch_metric_alarm" "high_cpu" {
   count = var.enable_detailed_monitoring ? 1 : 0
@@ -292,8 +281,4 @@ resource "aws_route53_record" "alb" {
 data "aws_route53_zone" "primary" {
   name = var.domain_name  # ← add this variable too
 }
-variable "domain_name" {
-  description = "Route53 hosted zone domain name"
-  type        = string
-  default     = ""
-}
+
